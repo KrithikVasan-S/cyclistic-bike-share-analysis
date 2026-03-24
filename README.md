@@ -37,7 +37,8 @@ The company aims to convert casual riders into annual members. This analysis ide
 
 ##  Project Files
 - `BikeShare_Project.Rmd` – Full analysis code  
-- `BikeShare_Project.html` – Final report  
+- `BikeShare_Project.html` – Final report ( Download and open in a browser )  
+
 
 ---
 
