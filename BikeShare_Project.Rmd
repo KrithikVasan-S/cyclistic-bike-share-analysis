@@ -1,0 +1,174 @@
+---
+title: "Cyclistic Bike-Share Case Study"
+author: "Krithik vasan S"
+date: "2026-03-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+
+library(tidyverse)
+library(lubridate)
+```
+
+## Business Task
+
+Cyclistic is a bike-share company aiming to increase profitability by converting casual riders into annual members. As a data analyst, the objective of this analysis is to understand how casual riders and members use the service differently and provide actionable recommendations.
+
+
+## Data Source
+
+The dataset used for this analysis consists of trip data from Q1 2020. It includes ride timestamps, station names, and user type (member vs casual).
+
+Provided by Cyclistic Bikeshare CO. through Coursera for the Capstone project
+
+
+## Data Cleaning & Preparation
+
+The dataset was preprocessed to ensure consistency and reliability for analysis.
+
+-   Date and time columns were converted from character format to datetime format to enable time-based calculations.
+
+-   Additional variables were created to support analysis, including ride length (in minutes) and day of the week.
+
+-   Further cleaning steps were performed to improve data quality. Records with missing user type information were removed, as they could not be categorized into casual or member segments.
+
+-   Additionally, rides with durations less than one minute or exceeding 24 hours were excluded, as these values likely represent data entry errors or system anomalies.
+
+These steps ensured that the dataset reflects realistic user behavior patterns and is suitable for analysis.
+
+```{r Code}
+rawdata <- read_csv("RawData/Divvy_Trips_2020_Q1.csv")
+
+rawdata <- rawdata %>%
+  mutate(
+    started_at = lubridate::ymd_hms(started_at),
+    ended_at = lubridate::ymd_hms(ended_at),
+    ride_length = as.numeric(difftime(ended_at, started_at, units = "mins")),
+    day_of_week = weekdays(started_at)
+  ) %>%
+  filter(
+    !is.na(member_casual),
+    ride_length >= 1,
+    ride_length <= 1440
+  )
+```
+
+
+## Analysis & Visualizations
+
+The following analysis explores behavioral differences between casual riders and annual members using Q1 2020 data.
+
+
+### 1. Ride Frequency by Day of Week
+
+```{r}
+rawdata$day_of_week <- factor(
+  rawdata$day_of_week,
+  levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
+
+ggplot(rawdata, aes(x = day_of_week, fill = member_casual)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Ride Count by Day of Week",
+    x = "Day of Week",
+    y = "Number of Rides",
+    fill = "User Type"
+  ) +
+  theme_minimal()
+```
+
+Members exhibit higher ride frequency during weekdays, indicating commuting behavior, while casual riders show increased activity on weekends, suggesting leisure-oriented usage.
+
+
+### 2. Average Ride Length
+
+```{r}
+rawdata %>%
+  group_by(member_casual) %>%
+  summarise(avg_ride = mean(ride_length, na.rm = TRUE)) %>%
+  ggplot(aes(x = member_casual, y = avg_ride, fill = member_casual)) +
+  geom_col() +
+  labs(
+    title = "Average Ride Length: Members vs Casual Riders",
+    x = "User Type",
+    y = "Average Ride Length (minutes)"
+  ) +
+  theme_minimal()
+```
+
+Casual riders tend to take longer rides compared to members, indicating more recreational usage, whereas members use the service for shorter, more frequent trips.
+
+
+### 3. Ride Patterns by Hour
+
+```{r}
+rawdata <- rawdata %>%
+  mutate(hour = lubridate::hour(started_at))
+
+rawdata %>%
+  group_by(hour, member_casual) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = hour, y = count, color = member_casual)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Ride Patterns by Hour",
+    x = "Hour of Day",
+    y = "Number of Rides",
+    color = "User Type"
+  ) +
+  theme_minimal()
+```
+
+Members show peak usage during typical commuting hours, while casual riders display more evenly distributed usage throughout the day, with slight increases during afternoon hours.
+
+
+### 4. Top Start Stations
+
+```{r}
+rawdata %>%
+  group_by(start_station_name, member_casual) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  head(10) %>%
+  ggplot(aes(x = reorder(start_station_name, count), y = count, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Start Stations by User Type",
+    x = "Station Name",
+    y = "Number of Rides"
+  ) +
+  theme_minimal()
+```
+
+Casual riders tend to start their trips from popular or high-traffic locations, while members are more likely to use stations located in residential or business areas, reinforcing differences in usage purpose.
+
+
+## Key Findings
+
+-   Casual riders primarily use the service for leisure purposes, as indicated by higher usage during weekends and longer ride durations.
+
+-   Annual members demonstrate consistent usage during weekdays, suggesting the service is used for daily commuting.
+
+-   Casual riders tend to take longer trips, while members prefer shorter, more frequent rides. Ride patterns by time of day show that members peak during typical commuting hours, whereas casual riders exhibit more flexible usage patterns.
+
+-   Popular start stations for casual riders are often located in high-traffic or recreational areas, while members frequently use stations in residential and business districts.
+
+## Recommendations
+
+-   Introduce targeted weekend membership promotions to convert casual riders who primarily use the service for leisure. Offer limited-time trial memberships or discounted passes to encourage casual riders to transition into annual members.
+-   Focus marketing efforts on high-traffic and tourist-heavy stations where casual rider activity is highest.
+-   Highlight cost savings and convenience benefits of membership for frequent riders through personalized campaigns.
+-   Develop promotional strategies around peak casual usage hours to maximize conversion opportunities.
+
+## Conclusion
+
+The analysis highlights clear behavioral differences between casual riders and annual members. Casual riders exhibit patterns consistent with leisure usage, while members primarily use the service for commuting. By targeting casual riders with tailored marketing strategies and incentives, Cyclistic can increase annual memberships and drive higher profitability.
